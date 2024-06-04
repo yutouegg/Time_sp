@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload CSV</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  </head>
+  <body>
+    <h1>Upload CSV File and Select Target Column for Prediction</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+      <input type="file" name="file" id="fileInput">
+      <input type="submit" value="Upload">
+    </form>
+    <br>
+    <div id="selectColumnDiv" style="display: none;">
+      <form id="predictForm">
+        <input type="hidden" name="filename" id="filenameInput">
+        <label for="targetColumn">Select Target Column:</label>
+        <select name="target_column" id="targetColumn"></select>
+        <br>
+        <label for="nPeriods">Number of periods to forecast:</label>
+        <input type="number" name="n_periods" id="nPeriods" required>
+        <br>
+        <input type="submit" value="Predict">
+      </form>
+    </div>
+    <br>
+    <div id="message"></div>
+    <img id="forecastImage" style="display: none;" />
+
+    <script>
+      $(document).ready(function() {
+        $('#uploadForm').on('submit', function(e) {
+          e.preventDefault();
+          var formData = new FormData(this);
+          $.ajax({
+            url: '/upload',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function(response) {
+              $('#filenameInput').val(response.filename);
+              var columns = response.columns;
+              var select = $('#targetColumn');
+              select.empty();
+              for (var i = 0; i < columns.length; i++) {
+                select.append('<option value="' + columns[i] + '">' + columns[i] + '</option>');
+              }
+              $('#selectColumnDiv').show();
+            },
+            error: function(xhr) {
+              $('#message').text('Error: ' + xhr.responseJSON.error);
+            }
+          });
+        });
+
+        $('#predictForm').on('submit', function(e) {
+          e.preventDefault();
+          $.ajax({
+            url: '/predict',
+            type: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+              $('#message').text(response.message);
+              $('#forecastImage').attr('src', '/' + response.image_path).show();
+            },
+            error: function(xhr) {
+              $('#message').text('Error: ' + xhr.responseJSON.error);
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
